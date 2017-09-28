@@ -6,8 +6,13 @@ import static org.openstreetmap.josm.tools.I18n.tr;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.TexturePaint;
+import java.awt.geom.Area;
+import java.awt.geom.Path2D;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,7 +46,10 @@ import org.openstreetmap.josm.data.imagery.TMSCachedTileLoader;
 import org.openstreetmap.josm.data.imagery.TileLoaderFactory;
 import org.openstreetmap.josm.data.osm.BBox;
 import org.openstreetmap.josm.data.preferences.StringProperty;
+import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.layer.AbstractCachedTileSourceLayer;
+import org.openstreetmap.josm.gui.layer.MainLayerManager;
+import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.gui.layer.TMSLayer;
 import org.openstreetmap.josm.spi.preferences.Config;
 import org.openstreetmap.josm.tools.Logging;
@@ -49,7 +57,7 @@ import org.openstreetmap.josm.tools.Logging;
 /**
  * This panel displays a map and lets the user chose a {@link BBox}.
  */
-public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser {
+public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, MainLayerManager.ActiveLayerChangeListener {
 
     /**
      * A list of tile sources that can be used for displaying the map.
@@ -189,6 +197,8 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser {
             iSourceButton.setCurrentMap(tileSources.get(0));
         }
 
+        MainApplication.getLayerManager().addActiveLayerChangeListener(this);
+
         new SlippyMapControler(this, this);
     }
 
@@ -216,6 +226,45 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D)g;
+
+        // draw hatched area for non-downloaded region of current "edit layer", but only if there *is* a current "edit layer",
+        // and it has defined bounds. routime is analogous to that in OsmDataLayer's paint routine (but just different
+        // enough to make sharing code impractical)
+        final OsmDataLayer editLayer = MainApplication.getLayerManager().getEditLayer();
+        if (editLayer != null && Config.getPref().getBoolean("draw.data.downloaded_area", true) && !editLayer.data.getDataSources().isEmpty()) {
+            // initialize area with current viewport
+            Rectangle b = this.getBounds();
+            // ensure we comfortably cover full area
+            b.grow(100, 100);
+            Path2D p = new Path2D.Float();
+
+            // combine successively downloaded areas after converting to screen-space
+            for (Bounds bounds : editLayer.data.getDataSourceBounds()) {
+                if (bounds.isCollapsed()) {
+                    continue;
+                }
+                Rectangle r = new Rectangle(this.getMapPosition(bounds.getMinLat(), bounds.getMinLon(), false));
+                r.add(this.getMapPosition(bounds.getMaxLat(), bounds.getMaxLon(), false));
+                p.append(r, false);
+            }
+            // subtract combined areas
+            Area a = new Area(b);
+            a.subtract(new Area(p));
+
+            // paint remainder
+            BufferedImage hatchedTexture = editLayer.getHatchedTexture();
+            int hatchedSize = hatchedTexture.getWidth();
+            Rectangle anchorRect = new Rectangle(
+                hatchedSize-(this.center.x % hatchedSize),
+                hatchedSize-(this.center.y % hatchedSize),
+                hatchedSize,
+                hatchedSize
+            );
+            g2d.setPaint(new TexturePaint(hatchedTexture, anchorRect));
+
+            g2d.fill(a);
+        }
 
         // draw selection rectangle
         if (iSelectionRectStart != null && iSelectionRectEnd != null) {
@@ -228,6 +277,11 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser {
             g.setColor(Color.BLACK);
             g.drawRect(box.x, box.y, box.width, box.height);
         }
+    }
+
+    @Override
+    public void activeOrEditLayerChanged(MainLayerManager.ActiveLayerChangeEvent e) {
+        this.repaint();
     }
 
     /**
