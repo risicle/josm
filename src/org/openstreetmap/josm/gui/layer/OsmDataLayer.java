@@ -347,6 +347,14 @@ public class OsmDataLayer extends AbstractModifiableLayer implements Listener, D
     }
 
     /**
+     * Replies texture image for non-downloaded areas.
+     * @return texture image for non-downloaded areas.
+     */
+    public BufferedImage getHatchedTexture() {
+        return hatched;
+    }
+
+    /**
      * Replies background color for downloaded areas.
      * @return background color for downloaded areas. Black by default
      */
