@@ -47,6 +47,7 @@ import org.openstreetmap.josm.data.imagery.ImageryLayerInfo;
 import org.openstreetmap.josm.data.imagery.TMSCachedTileLoader;
 import org.openstreetmap.josm.data.imagery.TileLoaderFactory;
 import org.openstreetmap.josm.data.osm.BBox;
+import org.openstreetmap.josm.data.preferences.BooleanProperty;
 import org.openstreetmap.josm.data.preferences.StringProperty;
 import org.openstreetmap.josm.gui.MainApplication;
 import org.openstreetmap.josm.gui.layer.AbstractCachedTileSourceLayer;
@@ -124,6 +125,7 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, Cha
     }
 
     private static final StringProperty PROP_MAPSTYLE = new StringProperty("slippy_map_chooser.mapstyle", "Mapnik");
+    private static final BooleanProperty PROP_SHOWDLAREA = new BooleanProperty("slippy_map_chooser.show_downloaded_area", true);
     /**
      * The property name used for the resize button.
      * @see #addPropertyChangeListener(java.beans.PropertyChangeListener)
@@ -134,7 +136,7 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, Cha
     private final transient OsmTileLoader uncachedLoader;
 
     private final SizeButton iSizeButton;
-    private final ButtonModel showDownloadAreaButtonModel = new JToggleButton.ToggleButtonModel();
+    private final ButtonModel showDownloadAreaButtonModel;
     private final SourceButton iSourceButton;
     private transient Bounds bbox;
 
@@ -177,6 +179,8 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, Cha
 
         List<TileSource> tileSources = getAllTileSources();
 
+        this.showDownloadAreaButtonModel = new JToggleButton.ToggleButtonModel();
+        this.showDownloadAreaButtonModel.setSelected(PROP_SHOWDLAREA.get());
         this.showDownloadAreaButtonModel.addChangeListener(this);
         iSourceButton = new SourceButton(this, tileSources, this.showDownloadAreaButtonModel);
         add(iSourceButton);
@@ -281,6 +285,8 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, Cha
 
     @Override
     public void stateChanged(ChangeEvent e) {
+        // fired for the stateChanged event of this.showDownloadAreaButtonModel
+        PROP_SHOWDLAREA.put(this.showDownloadAreaButtonModel.isSelected());
         this.repaint();
     }
 
