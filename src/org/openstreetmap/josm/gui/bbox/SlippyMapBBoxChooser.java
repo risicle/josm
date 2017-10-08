@@ -21,8 +21,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import javax.swing.ButtonModel;
+import javax.swing.JToggleButton;
 import javax.swing.JOptionPane;
 import javax.swing.SpringLayout;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 
 import org.openstreetmap.gui.jmapviewer.Coordinate;
 import org.openstreetmap.gui.jmapviewer.JMapViewer;
@@ -55,7 +59,7 @@ import org.openstreetmap.josm.tools.Logging;
 /**
  * This panel displays a map and lets the user chose a {@link BBox}.
  */
-public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, MainLayerManager.ActiveLayerChangeListener {
+public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, ChangeListener, MainLayerManager.ActiveLayerChangeListener {
 
     /**
      * A list of tile sources that can be used for displaying the map.
@@ -130,6 +134,7 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, Mai
     private final transient OsmTileLoader uncachedLoader;
 
     private final SizeButton iSizeButton;
+    private final ButtonModel showDownloadAreaButtonModel = new JToggleButton.ToggleButtonModel();
     private final SourceButton iSourceButton;
     private transient Bounds bbox;
 
@@ -172,10 +177,11 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, Mai
 
         List<TileSource> tileSources = getAllTileSources();
 
-        iSourceButton = new SourceButton(this, tileSources);
+        this.showDownloadAreaButtonModel.addChangeListener(this);
+        iSourceButton = new SourceButton(this, tileSources, this.showDownloadAreaButtonModel);
         add(iSourceButton);
-        springLayout.putConstraint(SpringLayout.EAST, iSourceButton, 0, SpringLayout.EAST, this);
-        springLayout.putConstraint(SpringLayout.NORTH, iSourceButton, 30, SpringLayout.NORTH, this);
+        springLayout.putConstraint(SpringLayout.EAST, iSourceButton, -2, SpringLayout.EAST, this);
+        springLayout.putConstraint(SpringLayout.NORTH, iSourceButton, 2, SpringLayout.NORTH, this);
 
         iSizeButton = new SizeButton(this);
         add(iSizeButton);
@@ -230,7 +236,7 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, Mai
         // and it has defined bounds. Routine is analogous to that in OsmDataLayer's paint routine (but just different
         // enough to make sharing code impractical)
         final OsmDataLayer editLayer = MainApplication.getLayerManager().getEditLayer();
-        if (editLayer != null && Config.getPref().getBoolean("draw.data.downloaded_area", true) && !editLayer.data.getDataSources().isEmpty()) {
+        if (editLayer != null && this.showDownloadAreaButtonModel.isSelected() && !editLayer.data.getDataSources().isEmpty()) {
             // initialize area with current viewport
             Rectangle b = this.getBounds();
             // ensure we comfortably cover full area
@@ -270,6 +276,11 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, Mai
 
     @Override
     public void activeOrEditLayerChanged(MainLayerManager.ActiveLayerChangeEvent e) {
+        this.repaint();
+    }
+
+    @Override
+    public void stateChanged(ChangeEvent e) {
         this.repaint();
     }
 
@@ -341,6 +352,9 @@ public class SlippyMapBBoxChooser extends JMapViewer implements BBoxChooser, Mai
         this.tileController.setTileCache(new MemoryTileCache());
         this.setTileSource(tileSource);
         PROP_MAPSTYLE.put(tileSource.getName()); // TODO Is name really unique?
+        if (this.iSourceButton.getCurrentSource() != tileSource) { // prevent infinite recursion
+            this.iSourceButton.setCurrentMap(tileSource);
+        }
     }
 
     @Override
