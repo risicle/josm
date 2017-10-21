@@ -7,6 +7,8 @@ import java.security.GeneralSecurityException;
 import java.text.MessageFormat;
 import java.util.TimeZone;
 
+import java.awt.Color;
+
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -55,6 +57,7 @@ public class JOSMTestRules implements TestRule {
     private boolean usePreferences = false;
     private APIType useAPI = APIType.NONE;
     private String i18n = null;
+    private TileSourceRule tileSourceRule;
     private boolean platform;
     private boolean useProjection;
     private boolean useProjectionNadGrids;
@@ -241,6 +244,33 @@ public class JOSMTestRules implements TestRule {
     }
 
     /**
+     * 
+     * @return this instance, for easy chaining
+     */
+    public JOSMTestRules fakeImagery() {
+        return this.fakeImagery(
+            new TileSourceRule(
+                true,
+                true,
+                new TileSourceRule.ColorSource(Color.WHITE, "White Tiles", 256),
+                new TileSourceRule.ColorSource(Color.BLACK, "Black Tiles", 256),
+                new TileSourceRule.ColorSource(Color.PINK, "Pink Tiles", 256),
+                new TileSourceRule.ColorSource(Color.GREEN, "Green Tiles", 256)
+            )
+        );
+    }
+
+    /**
+     * 
+     * @return this instance, for easy chaining
+     */
+    public JOSMTestRules fakeImagery(TileSourceRule tileSourceRule) {
+        this.preferences();
+        this.tileSourceRule = tileSourceRule;
+        return this;
+    }
+
+    /**
      * Use the {@link Main#main}, {@code Main.contentPanePrivate}, {@code Main.mainPanel},
      *         {@link Main#menu}, {@link Main#toolbar} global variables in this test.
      * @return this instance, for easy chaining
@@ -255,9 +285,14 @@ public class JOSMTestRules implements TestRule {
     @Override
     public Statement apply(Statement base, Description description) {
         Statement statement = base;
+        // counter-intuitively, Statements which need to have their setup routines performed *after* another one need to
+        // be added into the chain *before* that one, so that it ends up on the "inside".
         if (timeout > 0) {
             // TODO: new DisableOnDebug(timeout)
             statement = new FailOnTimeoutStatement(statement, timeout);
+        }
+        if (this.tileSourceRule != null) {
+            statement = this.tileSourceRule.apply(statement, description);
         }
         statement = new CreateJosmEnvironment(statement);
         if (josmHome != null) {
