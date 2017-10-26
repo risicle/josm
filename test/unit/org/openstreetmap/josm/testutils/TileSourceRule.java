@@ -103,7 +103,7 @@ public class TileSourceRule extends WireMockRule {
         public ImageryInfo getImageryInfo(int port) {
             return new ImageryInfo(
                 this.label,
-                String.format("tms[20]:http://localhost:%d/%h", port, this.hashCode()),
+                String.format("tms[20]:http://localhost:%d/%h/{z}/{x}/{y}.png", port, this.hashCode()),
                 "tms",
                 (String)null,
                 (String)null
