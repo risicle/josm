@@ -252,6 +252,7 @@ public class JOSMTestRules implements TestRule {
             new TileSourceRule(
                 true,
                 true,
+                true,
                 new TileSourceRule.ColorSource(Color.WHITE, "White Tiles", 256),
                 new TileSourceRule.ColorSource(Color.BLACK, "Black Tiles", 256),
                 new TileSourceRule.ColorSource(Color.PINK, "Pink Tiles", 256),
@@ -292,11 +293,14 @@ public class JOSMTestRules implements TestRule {
             statement = new FailOnTimeoutStatement(statement, timeout);
         }
         if (this.tileSourceRule != null) {
-            statement = this.tileSourceRule.apply(statement, description);
+            statement = this.tileSourceRule.applyRegisterLayers(statement, description);
         }
         statement = new CreateJosmEnvironment(statement);
         if (josmHome != null) {
             statement = josmHome.apply(statement, description);
+        }
+        if (this.tileSourceRule != null) {
+            statement = this.tileSourceRule.applyRunServer(statement, description);
         }
         return statement;
     }

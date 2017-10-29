@@ -17,6 +17,9 @@ import javax.imageio.ImageIO;
 
 import org.openstreetmap.josm.data.imagery.ImageryInfo;
 import org.openstreetmap.josm.data.imagery.ImageryLayerInfo;
+import org.openstreetmap.josm.gui.bbox.SlippyMapBBoxChooser;
+
+import static org.openstreetmap.josm.TestUtils.getPrivateStaticField;
 
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -118,15 +121,22 @@ public class TileSourceRule extends WireMockRule {
 
     private final List<ConstSource> sourcesList;
     private final boolean clearLayerList;
+    private final boolean clearSlippyMapSources;
     private final boolean registerInLayerList;
 
     public TileSourceRule(ConstSource... sources) {
-        this(false, false, sources);
+        this(false, false, false, sources);
     }
 
-    public TileSourceRule(boolean clearLayerList, boolean registerInLayerList, ConstSource... sources) {
+    public TileSourceRule(
+        boolean clearLayerList,
+        boolean clearSlippyMapSources,
+        boolean registerInLayerList,
+        ConstSource... sources
+    ) {
         super(options().dynamicPort());
         this.clearLayerList = clearLayerList;
+        this.clearSlippyMapSources = clearSlippyMapSources;
         this.registerInLayerList = registerInLayerList;
         this.sourcesList = Collections.unmodifiableList(Arrays.asList(sources));
         for (ConstSource source : this.sourcesList) {
@@ -134,13 +144,42 @@ public class TileSourceRule extends WireMockRule {
         }
     }
 
-    @Override
-    public Statement apply(Statement base, Description description) {
-        Statement statement = base;
+    /**
+     * A junit-rule {@code apply} method exposed separately to allow a chaining rule to put this much earlier in
+     * the test's initialization routine. The idea being to allow WireMock's web server to be starting up while other
+     * necessary initialization is taking place.
+     * See {@link org.junit.rules.TestRule#apply} for arguments.
+     */
+    public Statement applyRunServer(Statement base, Description description) {
+        return super.apply(base, description);
+    }
+
+    /**
+     * A junit-rule {@code apply} method exposed separately, containing initialization steps which can only be performed
+     * once more of josm's environment has been set up.
+     * See {@link org.junit.rules.TestRule#apply} for arguments.
+     */
+    public Statement applyRegisterLayers(Statement base, Description description) {
         if (this.registerInLayerList || this.clearLayerList) {
-            statement = new Statement() {
+            return new Statement() {
                 @Override
+                @SuppressWarnings("unchecked")
                 public void evaluate() throws Throwable {
+                    List<SlippyMapBBoxChooser.TileSourceProvider> slippyMapProviders = null;
+                    SlippyMapBBoxChooser.TileSourceProvider slippyMapDefaultProvider = null;
+                    if (TileSourceRule.this.clearSlippyMapSources) {
+                        try {
+                            slippyMapProviders = (List<SlippyMapBBoxChooser.TileSourceProvider>)getPrivateStaticField(
+                                SlippyMapBBoxChooser.class,
+                                "providers"
+                            );
+                            // pop this off the beginning of the list, keep for later
+                            slippyMapDefaultProvider = slippyMapProviders.remove(0);
+                        } catch (ReflectiveOperationException e) {
+                            Logging.warn("Failed to remove default SlippyMapBBoxChooser TileSourceProvider");
+                        }
+                    }
+
                     if (TileSourceRule.this.clearLayerList) {
                         ImageryLayerInfo.instance.clear();
                     }
@@ -149,10 +188,26 @@ public class TileSourceRule extends WireMockRule {
                             ImageryLayerInfo.addLayer(source.getImageryInfo(TileSourceRule.this.port()));
                         }
                     }
+
                     base.evaluate();
+
+                    if (slippyMapDefaultProvider != null) {
+                        // clean this up to its original state
+                        slippyMapProviders.add(0, slippyMapDefaultProvider);
+                    }
                 }
             };
+        } else {
+            return base;
         }
-        return super.apply(statement, description);
+    }
+
+    /**
+     * A standard implementation of apply which simply calls both sub- {@code apply} methods, {@link #applyRunServer}
+     * and {@link applyRegisterLayers}. Called when used as a standard junit rule.
+     */
+    @Override
+    public Statement apply(Statement base, Description description) {
+        return this.applyRunServer(this.applyRegisterLayers(base, description), description);
     }
 }
