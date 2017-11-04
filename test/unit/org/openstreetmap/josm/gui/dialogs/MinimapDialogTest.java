@@ -16,6 +16,7 @@ import javax.swing.JPopupMenu;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.TestUtils;
 import org.openstreetmap.josm.gui.bbox.SlippyMapBBoxChooser;
 import org.openstreetmap.josm.gui.bbox.SourceButton;
@@ -84,6 +85,9 @@ public class MinimapDialogTest {
      */
     @Test
     public void testSourceSwitching() throws Exception {
+        // relevant prefs starting out empty, should choose the first source and have shown download area enabled
+        // (not that there's a data layer for it to use)
+
         MinimapDialog dlg = new MinimapDialog();
         dlg.setSize(300, 200);
         dlg.showDialog();
@@ -149,5 +153,86 @@ public class MinimapDialogTest {
         slippyMap.paintAll(g);
 
         assertEquals(0xff00ff00, image.getRGB(0, 0));
+
+        assertEquals("Green Tiles", Main.pref.get("slippy_map_chooser.mapstyle", "Fail"));
+    }
+
+    @Test
+    public void testSourcePrefObeyed() throws Throwable {
+        Main.pref.put("slippy_map_chooser.mapstyle", "Green Tiles");
+
+        MinimapDialog dlg = new MinimapDialog();
+        dlg.setSize(300, 200);
+        dlg.showDialog();
+        SlippyMapBBoxChooser slippyMap = (SlippyMapBBoxChooser) TestUtils.getPrivateField(dlg, "slippyMap");
+        SourceButton sourceButton = (SourceButton) TestUtils.getPrivateField(slippyMap, "iSourceButton");
+
+        // get dlg in a paintable state
+        dlg.addNotify();
+        dlg.doLayout();
+
+        assertSingleSelectedSourceLabel(sourceButton.getPopupMenu(), "Green Tiles");
+
+        BufferedImage image = new BufferedImage(
+            slippyMap.getSize().width,
+            slippyMap.getSize().height,
+            BufferedImage.TYPE_INT_RGB
+        );
+
+        Graphics2D g = image.createGraphics();
+        // an initial paint operation is required to trigger the tile fetches
+        slippyMap.paintAll(g);
+        g.setBackground(Color.BLUE);
+        g.clearRect(0, 0, image.getWidth(), image.getHeight());
+        g.dispose();
+
+        Thread.sleep(500);
+
+        g = image.createGraphics();
+        slippyMap.paintAll(g);
+
+        assertEquals(0xff00ff00, image.getRGB(0, 0));
+
+        getSourceMenuItemByLabel(sourceButton.getPopupMenu(), "Magenta Tiles").doClick();
+        assertSingleSelectedSourceLabel(sourceButton.getPopupMenu(), "Magenta Tiles");
+
+        assertEquals("Magenta Tiles", Main.pref.get("slippy_map_chooser.mapstyle", "Fail"));
+    }
+
+    @Test
+    public void testSourcePrefInvalid() throws Throwable {
+        Main.pref.put("slippy_map_chooser.mapstyle", "Hooloovoo Tiles");
+
+        MinimapDialog dlg = new MinimapDialog();
+        dlg.setSize(300, 200);
+        dlg.showDialog();
+        SlippyMapBBoxChooser slippyMap = (SlippyMapBBoxChooser) TestUtils.getPrivateField(dlg, "slippyMap");
+        SourceButton sourceButton = (SourceButton) TestUtils.getPrivateField(slippyMap, "iSourceButton");
+
+        // get dlg in a paintable state
+        dlg.addNotify();
+        dlg.doLayout();
+
+        assertSingleSelectedSourceLabel(sourceButton.getPopupMenu(), "White Tiles");
+
+        BufferedImage image = new BufferedImage(
+            slippyMap.getSize().width,
+            slippyMap.getSize().height,
+            BufferedImage.TYPE_INT_RGB
+        );
+
+        Graphics2D g = image.createGraphics();
+        // an initial paint operation is required to trigger the tile fetches
+        slippyMap.paintAll(g);
+        g.setBackground(Color.BLUE);
+        g.clearRect(0, 0, image.getWidth(), image.getHeight());
+        g.dispose();
+
+        Thread.sleep(500);
+
+        g = image.createGraphics();
+        slippyMap.paintAll(g);
+
+        assertEquals(0xffffffff, image.getRGB(0, 0));
     }
 }
