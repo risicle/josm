@@ -6,6 +6,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics2D;
@@ -13,6 +15,8 @@ import java.awt.image.BufferedImage;
 
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+
+import java.util.concurrent.Callable;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,6 +27,8 @@ import org.openstreetmap.josm.gui.bbox.SourceButton;
 import org.openstreetmap.josm.testutils.JOSMTestRules;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import org.awaitility.Awaitility;
 
 /**
  * Unit tests of {@link MinimapDialog} class.
@@ -119,6 +125,10 @@ public class MinimapDialogTest {
         this.slippyMap.paintAll(g);
     }
 
+    protected Callable<Boolean> slippyMapTasksFinished() {
+        return () -> !this.slippyMap.getTileController().getTileLoader().hasOutstandingTasks();
+    }
+
     /**
      * Tests to switch imagery source.
      * @throws Exception if any error occurs
@@ -133,7 +143,7 @@ public class MinimapDialogTest {
         // an initial paint operation is required to trigger the tile fetches
         this.paintSlippyMap();
 
-        Thread.sleep(500);
+        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished());
 
         this.paintSlippyMap();
 
@@ -146,7 +156,7 @@ public class MinimapDialogTest {
         // call paint to trigger new tile fetch
         this.paintSlippyMap();
 
-        Thread.sleep(500);
+        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished());
 
         this.paintSlippyMap();
 
@@ -157,7 +167,7 @@ public class MinimapDialogTest {
         // call paint to trigger new tile fetch
         this.paintSlippyMap();
 
-        Thread.sleep(500);
+        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished());
 
         this.paintSlippyMap();
 
@@ -181,7 +191,7 @@ public class MinimapDialogTest {
         // an initial paint operation is required to trigger the tile fetches
         this.paintSlippyMap();
 
-        Thread.sleep(500);
+        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished());
 
         this.paintSlippyMap();
 
@@ -208,7 +218,7 @@ public class MinimapDialogTest {
         // an initial paint operation is required to trigger the tile fetches
         this.paintSlippyMap();
 
-        Thread.sleep(500);
+        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished());
 
         this.paintSlippyMap();
 
