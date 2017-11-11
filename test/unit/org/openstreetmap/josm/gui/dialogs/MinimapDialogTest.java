@@ -83,6 +83,8 @@ public class MinimapDialogTest {
     protected SlippyMapBBoxChooser slippyMap;
     protected SourceButton sourceButton;
 
+    protected static BufferedImage paintedSlippyMap;
+
     protected void setUpMiniMap() throws Exception {
         this.minimap = new MinimapDialog();
         this.minimap.setSize(300, 200);
@@ -93,6 +95,28 @@ public class MinimapDialogTest {
         // get dlg in a paintable state
         this.minimap.addNotify();
         this.minimap.doLayout();
+    }
+
+    protected void paintSlippyMap() {
+        if (paintedSlippyMap == null ||
+            paintedSlippyMap.getWidth() != this.slippyMap.getSize().width ||
+            paintedSlippyMap.getHeight() != this.slippyMap.getSize().height) {
+            paintedSlippyMap = new BufferedImage(
+                this.slippyMap.getSize().width,
+                this.slippyMap.getSize().height,
+                BufferedImage.TYPE_INT_RGB
+            );
+        } // else reuse existing one - allocation is expensive
+
+        // clear background to a recognizably "wrong" color & dispose our Graphics2D so we don't risk carrying over
+        // any state
+        Graphics2D g = paintedSlippyMap.createGraphics();
+        g.setBackground(Color.BLUE);
+        g.clearRect(0, 0, paintedSlippyMap.getWidth(), paintedSlippyMap.getHeight());
+        g.dispose();
+
+        g = paintedSlippyMap.createGraphics();
+        this.slippyMap.paintAll(g);
     }
 
     /**
@@ -106,65 +130,46 @@ public class MinimapDialogTest {
 
         this.setUpMiniMap();
 
-        BufferedImage image = new BufferedImage(
-            this.slippyMap.getSize().width,
-            this.slippyMap.getSize().height,
-            BufferedImage.TYPE_INT_RGB
-        );
-
-        Graphics2D g = image.createGraphics();
         // an initial paint operation is required to trigger the tile fetches
-        this.slippyMap.paintAll(g);
-        g.setBackground(Color.BLUE);
-        g.clearRect(0, 0, image.getWidth(), image.getHeight());
-        g.dispose();
+        this.paintSlippyMap();
 
         Thread.sleep(500);
 
-        g = image.createGraphics();
-        this.slippyMap.paintAll(g);
+        this.paintSlippyMap();
 
-        assertEquals(0xffffffff, image.getRGB(0, 0));
+        assertEquals(0xffffffff, paintedSlippyMap.getRGB(0, 0));
 
         assertSingleSelectedSourceLabel(this.sourceButton.getPopupMenu(), "White Tiles");
 
         getSourceMenuItemByLabel(this.sourceButton.getPopupMenu(), "Magenta Tiles").doClick();
         assertSingleSelectedSourceLabel(this.sourceButton.getPopupMenu(), "Magenta Tiles");
         // call paint to trigger new tile fetch
-        this.slippyMap.paintAll(g);
-
-        // clear background to a recognizably "wrong" color & dispose our Graphics2D so we don't risk carrying over
-        // any state
-        g.setBackground(Color.BLUE);
-        g.clearRect(0, 0, image.getWidth(), image.getHeight());
-        g.dispose();
+        this.paintSlippyMap();
 
         Thread.sleep(500);
 
-        g = image.createGraphics();
-        this.slippyMap.paintAll(g);
+        this.paintSlippyMap();
 
-        assertEquals(0xffff00ff, image.getRGB(0, 0));
+        assertEquals(0xffff00ff, paintedSlippyMap.getRGB(0, 0));
 
         getSourceMenuItemByLabel(this.sourceButton.getPopupMenu(), "Green Tiles").doClick();
         assertSingleSelectedSourceLabel(this.sourceButton.getPopupMenu(), "Green Tiles");
         // call paint to trigger new tile fetch
-        this.slippyMap.paintAll(g);
-
-        g.setBackground(Color.BLUE);
-        g.clearRect(0, 0, image.getWidth(), image.getHeight());
-        g.dispose();
+        this.paintSlippyMap();
 
         Thread.sleep(500);
 
-        g = image.createGraphics();
-        this.slippyMap.paintAll(g);
+        this.paintSlippyMap();
 
-        assertEquals(0xff00ff00, image.getRGB(0, 0));
+        assertEquals(0xff00ff00, paintedSlippyMap.getRGB(0, 0));
 
         assertEquals("Green Tiles", Main.pref.get("slippy_map_chooser.mapstyle", "Fail"));
     }
 
+    /**
+     * Tests minimap obeys a saved "mapstyle" preference on startup.
+     * @throws Exception if any error occurs
+     */
     @Test
     public void testSourcePrefObeyed() throws Exception {
         Main.pref.put("slippy_map_chooser.mapstyle", "Green Tiles");
@@ -173,25 +178,14 @@ public class MinimapDialogTest {
 
         assertSingleSelectedSourceLabel(this.sourceButton.getPopupMenu(), "Green Tiles");
 
-        BufferedImage image = new BufferedImage(
-            this.slippyMap.getSize().width,
-            this.slippyMap.getSize().height,
-            BufferedImage.TYPE_INT_RGB
-        );
-
-        Graphics2D g = image.createGraphics();
         // an initial paint operation is required to trigger the tile fetches
-        this.slippyMap.paintAll(g);
-        g.setBackground(Color.BLUE);
-        g.clearRect(0, 0, image.getWidth(), image.getHeight());
-        g.dispose();
+        this.paintSlippyMap();
 
         Thread.sleep(500);
 
-        g = image.createGraphics();
-        this.slippyMap.paintAll(g);
+        this.paintSlippyMap();
 
-        assertEquals(0xff00ff00, image.getRGB(0, 0));
+        assertEquals(0xff00ff00, paintedSlippyMap.getRGB(0, 0));
 
         getSourceMenuItemByLabel(this.sourceButton.getPopupMenu(), "Magenta Tiles").doClick();
         assertSingleSelectedSourceLabel(this.sourceButton.getPopupMenu(), "Magenta Tiles");
@@ -199,6 +193,10 @@ public class MinimapDialogTest {
         assertEquals("Magenta Tiles", Main.pref.get("slippy_map_chooser.mapstyle", "Fail"));
     }
 
+    /**
+     * Tests minimap handles an unrecognized "mapstyle" preference on startup
+     * @throws Exception if any error occurs
+     */
     @Test
     public void testSourcePrefInvalid() throws Exception {
         Main.pref.put("slippy_map_chooser.mapstyle", "Hooloovoo Tiles");
@@ -207,24 +205,13 @@ public class MinimapDialogTest {
 
         assertSingleSelectedSourceLabel(this.sourceButton.getPopupMenu(), "White Tiles");
 
-        BufferedImage image = new BufferedImage(
-            this.slippyMap.getSize().width,
-            this.slippyMap.getSize().height,
-            BufferedImage.TYPE_INT_RGB
-        );
-
-        Graphics2D g = image.createGraphics();
         // an initial paint operation is required to trigger the tile fetches
-        this.slippyMap.paintAll(g);
-        g.setBackground(Color.BLUE);
-        g.clearRect(0, 0, image.getWidth(), image.getHeight());
-        g.dispose();
+        this.paintSlippyMap();
 
         Thread.sleep(500);
 
-        g = image.createGraphics();
-        this.slippyMap.paintAll(g);
+        this.paintSlippyMap();
 
-        assertEquals(0xffffffff, image.getRGB(0, 0));
+        assertEquals(0xffffffff, paintedSlippyMap.getRGB(0, 0));
     }
 }
