@@ -90,6 +90,7 @@ public class MinimapDialogTest {
     protected MinimapDialog minimap;
     protected SlippyMapBBoxChooser slippyMap;
     protected SourceButton sourceButton;
+    protected Callable<Boolean> slippyMapTasksFinished;
 
     protected static BufferedImage paintedSlippyMap;
 
@@ -99,6 +100,8 @@ public class MinimapDialogTest {
         this.minimap.showDialog();
         this.slippyMap = (SlippyMapBBoxChooser) TestUtils.getPrivateField(this.minimap, "slippyMap");
         this.sourceButton = (SourceButton) TestUtils.getPrivateField(this.slippyMap, "iSourceButton");
+
+        this.slippyMapTasksFinished = () -> !this.slippyMap.getTileController().getTileLoader().hasOutstandingTasks();
 
         // get minimap in a paintable state
         this.minimap.addNotify();
@@ -127,10 +130,6 @@ public class MinimapDialogTest {
         this.slippyMap.paintAll(g);
     }
 
-    protected Callable<Boolean> slippyMapTasksFinished() {
-        return () -> !this.slippyMap.getTileController().getTileLoader().hasOutstandingTasks();
-    }
-
     /**
      * Tests to switch imagery source.
      * @throws Exception if any error occurs
@@ -145,7 +144,7 @@ public class MinimapDialogTest {
         // an initial paint operation is required to trigger the tile fetches
         this.paintSlippyMap();
 
-        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished());
+        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished);
 
         this.paintSlippyMap();
 
@@ -158,7 +157,7 @@ public class MinimapDialogTest {
         // call paint to trigger new tile fetch
         this.paintSlippyMap();
 
-        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished());
+        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished);
 
         this.paintSlippyMap();
 
@@ -169,7 +168,7 @@ public class MinimapDialogTest {
         // call paint to trigger new tile fetch
         this.paintSlippyMap();
 
-        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished());
+        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished);
 
         this.paintSlippyMap();
 
@@ -193,7 +192,7 @@ public class MinimapDialogTest {
         // an initial paint operation is required to trigger the tile fetches
         this.paintSlippyMap();
 
-        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished());
+        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished);
 
         this.paintSlippyMap();
 
@@ -220,7 +219,7 @@ public class MinimapDialogTest {
         // an initial paint operation is required to trigger the tile fetches
         this.paintSlippyMap();
 
-        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished());
+        Awaitility.await().atMost(1000, MILLISECONDS).until(this.slippyMapTasksFinished);
 
         this.paintSlippyMap();
 
