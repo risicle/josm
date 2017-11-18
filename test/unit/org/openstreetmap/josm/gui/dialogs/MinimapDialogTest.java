@@ -40,7 +40,7 @@ public class MinimapDialogTest {
      */
     @Rule
     @SuppressFBWarnings(value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
-    public JOSMTestRules josmTestRules = new JOSMTestRules().main().platform().projection().fakeImagery();
+    public JOSMTestRules josmTestRules = new JOSMTestRules().main().commands().platform().projection().fakeImagery();
 
     /**
      * Unit test of {@link MinimapDialog} class.
@@ -54,7 +54,7 @@ public class MinimapDialogTest {
         assertFalse(dlg.isVisible());
     }
 
-    protected void assertSingleSelectedSourceLabel(String label) {
+    protected void assertSingleSelectedSourceLabel(final String label) {
         JPopupMenu menu = this.sourceButton.getPopupMenu();
         boolean found = false;
         for (Component c: menu.getComponents()) {
@@ -73,7 +73,7 @@ public class MinimapDialogTest {
         assertTrue("Selected source not found in menu", found);
     }
 
-    protected JMenuItem getSourceMenuItemByLabel(String label) {
+    protected JMenuItem getSourceMenuItemByLabel(final String label) {
         JPopupMenu menu = this.sourceButton.getPopupMenu();
         for (Component c: menu.getComponents()) {
             if (JPopupMenu.Separator.class.isInstance(c)) {
