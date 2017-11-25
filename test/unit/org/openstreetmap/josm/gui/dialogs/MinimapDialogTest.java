@@ -24,6 +24,7 @@ import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.TestUtils;
 import org.openstreetmap.josm.gui.bbox.SlippyMapBBoxChooser;
 import org.openstreetmap.josm.gui.bbox.SourceButton;
+import org.openstreetmap.josm.gui.util.GuiHelper;
 import org.openstreetmap.josm.testutils.JOSMTestRules;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -54,7 +55,22 @@ public class MinimapDialogTest {
         assertFalse(dlg.isVisible());
     }
 
-    protected void assertSingleSelectedSourceLabel(String label) {
+    @FunctionalInterface
+    protected interface ThrowingRunnable {
+        void run() throws Throwable;
+    }
+
+    protected static Runnable uncheckExceptions(final ThrowingRunnable tr) {
+        return (() -> {
+            try {
+                tr.run();
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    protected void assertSingleSelectedSourceLabel(final String label) {
         JPopupMenu menu = this.sourceButton.getPopupMenu();
         boolean found = false;
         for (Component c: menu.getComponents()) {
@@ -73,18 +89,26 @@ public class MinimapDialogTest {
         assertTrue("Selected source not found in menu", found);
     }
 
-    protected JMenuItem getSourceMenuItemByLabel(String label) {
-        JPopupMenu menu = this.sourceButton.getPopupMenu();
-        for (Component c: menu.getComponents()) {
-            if (JPopupMenu.Separator.class.isInstance(c)) {
-                break;
-            } else if (((JMenuItem) c).getText() == label) {
-                return (JMenuItem) c;
-            }
-            // else continue...
+    protected void clickSourceMenuItemByLabel(final String label) {
+        try {
+            GuiHelper.runInEDTAndWaitWithException(() -> {
+                JPopupMenu menu = this.sourceButton.getPopupMenu();
+                for (Component c: menu.getComponents()) {
+                    if (JPopupMenu.Separator.class.isInstance(c)) {
+                        // sources should all come before any separators
+                        break;
+                    } else if (((JMenuItem) c).getText() == label) {
+                        ((JMenuItem) c).doClick();
+                        return;
+                    }
+                    // else continue...
+                }
+                fail();
+            });
+        } catch (Throwable e) {
+            // need to turn this *back* into an AssertionFailedError
+            fail(String.format("Failed to find menu item with label %s: %s", label, e));
         }
-        fail("Failed to find menu item with label " + label);
-        return null;
     }
 
     protected MinimapDialog minimap;
@@ -94,18 +118,20 @@ public class MinimapDialogTest {
 
     protected static BufferedImage paintedSlippyMap;
 
-    protected void setUpMiniMap() throws Exception {
-        this.minimap = new MinimapDialog();
-        this.minimap.setSize(300, 200);
-        this.minimap.showDialog();
-        this.slippyMap = (SlippyMapBBoxChooser) TestUtils.getPrivateField(this.minimap, "slippyMap");
-        this.sourceButton = (SourceButton) TestUtils.getPrivateField(this.slippyMap, "iSourceButton");
+    protected void setUpMiniMap() {
+        GuiHelper.runInEDTAndWaitWithException(uncheckExceptions(() -> {
+            this.minimap = new MinimapDialog();
+            this.minimap.setSize(300, 200);
+            this.minimap.showDialog();
+            this.slippyMap = (SlippyMapBBoxChooser) TestUtils.getPrivateField(this.minimap, "slippyMap");
+            this.sourceButton = (SourceButton) TestUtils.getPrivateField(this.slippyMap, "iSourceButton");
+
+            // get minimap in a paintable state
+            this.minimap.addNotify();
+            this.minimap.doLayout();
+        }));
 
         this.slippyMapTasksFinished = () -> !this.slippyMap.getTileController().getTileLoader().hasOutstandingTasks();
-
-        // get minimap in a paintable state
-        this.minimap.addNotify();
-        this.minimap.doLayout();
     }
 
     protected void paintSlippyMap() {
@@ -152,7 +178,7 @@ public class MinimapDialogTest {
 
         this.assertSingleSelectedSourceLabel("White Tiles");
 
-        this.getSourceMenuItemByLabel("Magenta Tiles").doClick();
+        this.clickSourceMenuItemByLabel("Magenta Tiles");
         this.assertSingleSelectedSourceLabel("Magenta Tiles");
         // call paint to trigger new tile fetch
         this.paintSlippyMap();
@@ -163,7 +189,7 @@ public class MinimapDialogTest {
 
         assertEquals(0xffff00ff, paintedSlippyMap.getRGB(0, 0));
 
-        this.getSourceMenuItemByLabel("Green Tiles").doClick();
+        this.clickSourceMenuItemByLabel("Green Tiles");
         this.assertSingleSelectedSourceLabel("Green Tiles");
         // call paint to trigger new tile fetch
         this.paintSlippyMap();
@@ -198,7 +224,7 @@ public class MinimapDialogTest {
 
         assertEquals(0xff00ff00, paintedSlippyMap.getRGB(0, 0));
 
-        this.getSourceMenuItemByLabel("Magenta Tiles").doClick();
+        this.clickSourceMenuItemByLabel("Magenta Tiles");
         this.assertSingleSelectedSourceLabel("Magenta Tiles");
 
         assertEquals("Magenta Tiles", Main.pref.get("slippy_map_chooser.mapstyle", "Fail"));
