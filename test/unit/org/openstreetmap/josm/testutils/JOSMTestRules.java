@@ -367,6 +367,17 @@ public class JOSMTestRules implements TestRule {
             TestUtils.setPrivateStaticField(Version.class, "instance", replacementVersion);
         }
 
+        // Add JOSM home
+        if (josmHome != null) {
+            try {
+                File home = josmHome.newFolder();
+                System.setProperty("josm.home", home.getAbsolutePath());
+                JosmBaseDirectories.getInstance().clearMemos();
+            } catch (IOException e) {
+                throw new InitializationError(e);
+            }
+        }
+
         Config.setPreferencesInstance(Main.pref);
         Config.setBaseDirectoriesProvider(JosmBaseDirectories.getInstance());
         // All tests use the same timezone.
@@ -383,16 +394,6 @@ public class JOSMTestRules implements TestRule {
         // Set up i18n
         if (i18n != null) {
             I18n.set(i18n);
-        }
-
-        // Add JOSM home
-        if (josmHome != null) {
-            try {
-                File home = josmHome.newFolder();
-                System.setProperty("josm.home", home.getAbsolutePath());
-            } catch (IOException e) {
-                throw new InitializationError(e);
-            }
         }
 
         // Add preferences
