@@ -1,12 +1,10 @@
 language: java
-script: (eval "$ANT_INVOCATION $(test $TRAVIS_JDK_VERSION = openjdk8 && echo -DnoJavaFX=true) test")
+script: (eval "$ANT_INVOCATION $(test $TRAVIS_JDK_VERSION = openjdk8 && echo -DnoJavaFX=true) test-unit-hardfail" && eval "$ANT_INVOCATION $(test $TRAVIS_JDK_VERSION = openjdk8 && echo -DnoJavaFX=true) test-unit-hardfail" && eval "$ANT_INVOCATION $(test $TRAVIS_JDK_VERSION = openjdk8 && echo -DnoJavaFX=true) test-unit-hardfail")
 os: linux
 dist: trusty
 env:
-  - ANT_INVOCATION="xvfb-run ant -Dtest.headless=false"
   - ANT_INVOCATION="ant -Dtest.headless=true"
 jdk:
-  - oraclejdk9
   - oraclejdk8
   - openjdk8
 matrix:
