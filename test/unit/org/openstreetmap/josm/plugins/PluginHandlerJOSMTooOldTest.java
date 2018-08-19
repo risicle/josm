@@ -120,6 +120,8 @@ public class PluginHandlerJOSMTooOldTest {
             false
         ).stream().sorted((a, b) -> a.name.compareTo(b.name)).collect(ImmutableList.toImmutableList());
 
+        TestUtils.syncEDTAndWorkerThreads();
+
         assertEquals(
             ImmutableList.of(
                 this.dummyPluginVersionReqString,
