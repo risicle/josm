@@ -10,7 +10,9 @@ build_script:
 test_script:
   - ant test-unit-hardfail
 on_finish:
+  - 7z a test-results.zip test\report\TEST*.xml
   - ps: |
+        Push-AppveyorArtifact test-results.zip
         $wc = New-Object 'System.Net.WebClient'
         Get-ChildItem . -Name -Recurse 'TEST-*.xml'  |
         Foreach-Object {
