@@ -132,9 +132,6 @@ public class PluginHandlerJOSMTooOldTest {
 
         assertEquals(2, updatedPlugins.size());
 
-        assertEquals(updatedPlugins.get(0).name, "baz_plugin");
-        assertEquals("7", updatedPlugins.get(0).localversion);
-
         assertEquals(updatedPlugins.get(1).name, "dummy_plugin");
         assertEquals("31772", updatedPlugins.get(1).localversion);
 
@@ -151,6 +148,9 @@ public class PluginHandlerJOSMTooOldTest {
         assertEquals(Config.getPref().getInt("pluginmanager.version", 111), 6000);
         // not mocking the time so just check it's not its original value
         assertNotEquals(Config.getPref().get("pluginmanager.lastupdate", "999"), "999");
+
+        assertEquals(updatedPlugins.get(0).name, "baz_plugin");
+        assertEquals("7", updatedPlugins.get(0).localversion);
     }
 
     /**
