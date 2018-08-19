@@ -3,6 +3,8 @@ image: Visual Studio 2017
 install:
   - cinst ant
   - refreshenv
+environment:
+  _JAVA_OPTIONS: "-Xmx1g"
 build_script:
   - ant compile dist distmac checkstyle pmd spotbugs
 test_script:
