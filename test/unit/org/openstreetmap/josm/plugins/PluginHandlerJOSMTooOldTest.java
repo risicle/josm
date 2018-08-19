@@ -132,9 +132,6 @@ public class PluginHandlerJOSMTooOldTest {
 
         assertEquals(2, updatedPlugins.size());
 
-        assertEquals(updatedPlugins.get(1).name, "dummy_plugin");
-        assertEquals("31772", updatedPlugins.get(1).localversion);
-
         assertFalse(targetDummyJarNew.exists());
         assertFalse(targetBazJarNew.exists());
 
@@ -151,6 +148,9 @@ public class PluginHandlerJOSMTooOldTest {
 
         assertEquals(updatedPlugins.get(0).name, "baz_plugin");
         assertEquals("7", updatedPlugins.get(0).localversion);
+
+        assertEquals(updatedPlugins.get(1).name, "dummy_plugin");
+        assertEquals("31772", updatedPlugins.get(1).localversion);
     }
 
     /**
