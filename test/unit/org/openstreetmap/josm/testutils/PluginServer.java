@@ -117,9 +117,12 @@ public class PluginServer {
                 final Path filesRootPath = new File(TestUtils.getTestDataRoot()).toPath().toAbsolutePath().resolve("__files").normalize();
 
                 if (jarPath.startsWith(filesRootPath)) {
-                    return filesRootPath.relativize(jarPath).toString();
+                    String r = filesRootPath.relativize(jarPath).toString();
+                    Logging.info("returning {0} from getJarPathBeneathFilesDir()", r);
+                    return r;
                 }
             }
+            Logging.info("returning null from getJarPathBeneathFilesDir()");
             return null;
         }
 
