@@ -25,3 +25,5 @@ before_install:
       brew install ant
       ;;
     esac;
+after_failure:
+  - xmlstarlet sel -t -c "//testcase" test/report/TEST-org.openstreetmap.josm.gui.MainApplicationTest.xml
