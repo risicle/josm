@@ -29,4 +29,4 @@ before_install:
   - brew update
   - brew install xmlstarlet
 after_failure:
-  - xmlstarlet sel -t -c "//testcase" test/report/TEST-org.openstreetmap.josm.gui.MainApplicationTest.xml
+  - xmlstarlet sel -t -c "//testcase" $TRAVIS_BUILD_DIR/test/report/TEST-org.openstreetmap.josm.gui.MainApplicationTest.xml
