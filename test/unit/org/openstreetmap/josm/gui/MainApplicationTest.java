@@ -294,6 +294,7 @@ public class MainApplicationTest {
         assertNotNull(noAction.getKeyStroke());
         assertNull(MainApplication.getRegisteredActionShortcut(noAction));
         AboutAction about = new AboutAction();
+        assertNotNull(about.getShortcut());
         assertEquals(about, MainApplication.getRegisteredActionShortcut(about.getShortcut()));
     }
 
