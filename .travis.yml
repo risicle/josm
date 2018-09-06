@@ -28,3 +28,5 @@ before_install:
     esac;
 after_failure:
   - xmlstarlet sel -t -c "//testcase" $TRAVIS_BUILD_DIR/test/report/TEST-org.openstreetmap.josm.gui.MainApplicationTest.xml
+  - xmlstarlet sel -t -c "//system-out" $TRAVIS_BUILD_DIR/test/report/TEST-org.openstreetmap.josm.gui.MainApplicationTest.xml
+  - xmlstarlet sel -t -c "//system-err" $TRAVIS_BUILD_DIR/test/report/TEST-org.openstreetmap.josm.gui.MainApplicationTest.xml
